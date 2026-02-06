@@ -24,16 +24,34 @@ export function normalizeGraphData(rawData) {
     },
   }));
 
+  // Map shape names to React Flow component type names
+  const SHAPE_TO_COMPONENT = { default: 'dynamic', table: 'table', card: 'card', pill: 'pill' };
+
   // Convert nodes
   const nodes = (rawData.nodes || []).map((n) => {
     const typeName = n.type || 'default';
-    const { color, icon, borderStyle } = getNodeTypeStyle(typeName, nodeTypes);
+    const { color, icon, borderStyle, shape } = getNodeTypeStyle(typeName, nodeTypes);
     const hasGroup = n.group && groupIds.has(n.group);
+
+    // Determine React Flow component type from shape
+    const componentType = SHAPE_TO_COMPONENT[shape] || 'dynamic';
+
+    // Shape-specific data fields from the raw node
+    const extra = {};
+    if (shape === 'table') {
+      // rows: array of { key, value } — from explicit rows or metadata
+      extra.rows = n.rows || Object.entries(n.metadata || {}).map(([k, v]) => ({ key: k, value: String(v) }));
+    }
+    if (shape === 'card') {
+      extra.description = n.description || null;
+      extra.tags = n.tags || null;
+      extra.image = n.image || null;
+    }
 
     return {
       id: n.id,
       position: n.position || { x: 0, y: 0 },
-      type: 'dynamic',
+      type: componentType,
       data: {
         label: n.label || n.id,
         typeName,
@@ -42,7 +60,9 @@ export function normalizeGraphData(rawData) {
         borderStyle,
         metadata: n.metadata || {},
         group: n.group || null,
+        layer: n.layer || null,
         dimmed: false,
+        ...extra,
       },
       ...(hasGroup ? { parentId: n.group } : {}),
     };
@@ -65,6 +85,7 @@ export function normalizeGraphData(rawData) {
         animated,
         order: e.order ?? null,
         subtitle: e.subtitle || null,
+        layer: e.layer || null,
         metadata: e.metadata || {},
       },
       markerEnd: {

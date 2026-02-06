@@ -10,8 +10,11 @@ function SearchPanel({
   toggleNodeType,
   activeGroups,
   toggleGroup,
+  activeLayers,
+  toggleLayer,
   availableTypes,
   availableGroups,
+  availableLayers,
   matchCount,
   totalCount,
   onSelectResult,
@@ -184,6 +187,27 @@ function SearchPanel({
           />
         </div>
       </div>
+
+      {/* Layer Toggles */}
+      {availableLayers.length > 1 && (
+        <div className="panel-section">
+          <div className="section-title">Layers</div>
+          <div className="toggle-pills">
+            {availableLayers.map((layer) => {
+              const active = activeLayers.has(layer);
+              return (
+                <button
+                  key={layer}
+                  className={`layer-pill ${active ? 'active' : ''}`}
+                  onClick={() => toggleLayer(layer)}
+                >
+                  {layer}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Node Type Toggles */}
       {availableTypes.length > 0 && (

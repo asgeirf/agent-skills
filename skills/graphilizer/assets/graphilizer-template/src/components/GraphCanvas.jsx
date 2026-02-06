@@ -3,9 +3,12 @@ import {
   Background,
 } from '@xyflow/react';
 import DynamicNode from './DynamicNode.jsx';
+import TableNode from './TableNode.jsx';
+import CardNode from './CardNode.jsx';
+import PillNode from './PillNode.jsx';
 import LabeledEdge from './LabeledEdge.jsx';
 
-const nodeTypes = { dynamic: DynamicNode };
+const nodeTypes = { dynamic: DynamicNode, table: TableNode, card: CardNode, pill: PillNode };
 const edgeTypes = { labeled: LabeledEdge };
 
 function GraphCanvas({ nodes, edges, onNodesChange, onEdgesChange, onNodeClick, onInit }) {

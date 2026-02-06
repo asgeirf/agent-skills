@@ -13,7 +13,7 @@ function LabeledEdge({
   markerEnd,
   animated,
 }) {
-  const { label, color, dashStyle, timelineState } = data || {};
+  const { label, color, dashStyle, timelineState, dimmed: layerDimmed } = data || {};
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -32,9 +32,9 @@ function LabeledEdge({
   const isFuture = timelineState === 'future';
   const isActive = timelineState === 'active';
 
-  const edgeOpacity = isFuture ? 0.12 : 1;
+  const edgeOpacity = layerDimmed ? 0.08 : isFuture ? 0.12 : 1;
   const strokeWidth = isActive ? 3 : 2;
-  const labelOpacity = isFuture ? 0.12 : isActive ? 1 : 0.7;
+  const labelOpacity = layerDimmed ? 0.08 : isFuture ? 0.12 : isActive ? 1 : 0.7;
 
   return (
     <g style={{ opacity: edgeOpacity, transition: 'opacity 0.4s ease' }}>

@@ -140,7 +140,7 @@ function GraphilizerApp() {
 
   const onEdgesChange = useCallback(() => {}, []);
 
-  // Apply type/group dimming + timeline highlighting as derived state
+  // Apply type/group/layer dimming + timeline highlighting as derived state
   const displayNodes = useMemo(() => {
     return nodeState.map((node) => {
       if (node.type === 'group') return node;
@@ -150,6 +150,15 @@ function GraphilizerApp() {
       return { ...node, data: { ...node.data, dimmed, highlighted } };
     });
   }, [nodeState, search.matchingNodeIds, highlightedNodeIds]);
+
+  // Dim edges whose endpoints or layer are filtered out
+  const displayEdges = useMemo(() => {
+    return baseEdges.map((edge) => {
+      const dimmed = !search.matchingEdgeIds.has(edge.id);
+      if (edge.data?.dimmed === dimmed) return edge;
+      return { ...edge, data: { ...edge.data, dimmed } };
+    });
+  }, [baseEdges, search.matchingEdgeIds]);
 
   // Zoom to a specific node
   const zoomToNode = useCallback(
@@ -258,8 +267,11 @@ function GraphilizerApp() {
           toggleNodeType={search.toggleNodeType}
           activeGroups={search.activeGroups}
           toggleGroup={search.toggleGroup}
+          activeLayers={search.activeLayers}
+          toggleLayer={search.toggleLayer}
           availableTypes={search.availableTypes}
           availableGroups={search.availableGroups}
+          availableLayers={search.availableLayers}
           matchCount={search.matchCount}
           totalCount={search.totalCount}
           onSelectResult={handleSelectResult}
@@ -269,7 +281,7 @@ function GraphilizerApp() {
         <div className="graphilizer-canvas-area">
           <GraphCanvas
             nodes={displayNodes}
-            edges={baseEdges}
+            edges={displayEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}

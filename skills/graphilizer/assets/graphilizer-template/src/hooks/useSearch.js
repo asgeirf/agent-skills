@@ -3,16 +3,22 @@ import { useState, useMemo, useCallback } from 'react';
 export function useSearch(nodes, edges) {
   const [disabledTypes, setDisabledTypes] = useState(() => new Set());
   const [disabledGroups, setDisabledGroups] = useState(() => new Set());
+  const [disabledLayers, setDisabledLayers] = useState(() => new Set());
 
-  const { availableTypes, availableGroups } = useMemo(() => {
+  const { availableTypes, availableGroups, availableLayers } = useMemo(() => {
     const types = new Set();
     const groups = new Set();
+    const layers = new Set();
     for (const n of nodes) {
       if (n.data?.typeName) types.add(n.data.typeName);
       if (n.data?.group) groups.add(n.data.group);
+      if (n.data?.layer) layers.add(n.data.layer);
     }
-    return { availableTypes: [...types], availableGroups: [...groups] };
-  }, [nodes]);
+    for (const e of edges) {
+      if (e.data?.layer) layers.add(e.data.layer);
+    }
+    return { availableTypes: [...types], availableGroups: [...groups], availableLayers: [...layers].sort() };
+  }, [nodes, edges]);
 
   const toggleNodeType = useCallback((type) => {
     setDisabledTypes((prev) => {
@@ -32,17 +38,41 @@ export function useSearch(nodes, edges) {
     });
   }, []);
 
-  // Compute which node IDs pass the type/group filters
+  const toggleLayer = useCallback((layer) => {
+    setDisabledLayers((prev) => {
+      const s = new Set(prev);
+      if (s.has(layer)) s.delete(layer);
+      else s.add(layer);
+      return s;
+    });
+  }, []);
+
+  // Compute which node IDs pass the type/group/layer filters
   const matchingNodeIds = useMemo(() => {
     const ids = new Set();
     for (const node of nodes) {
       if (node.type === 'group') continue;
       if (node.data?.typeName && disabledTypes.has(node.data.typeName)) continue;
       if (node.data?.group && disabledGroups.has(node.data.group)) continue;
+      if (node.data?.layer && disabledLayers.has(node.data.layer)) continue;
       ids.add(node.id);
     }
     return ids;
-  }, [nodes, disabledTypes, disabledGroups]);
+  }, [nodes, disabledTypes, disabledGroups, disabledLayers]);
+
+  // Compute which edge IDs pass layer filters
+  // An edge matches if: (1) it has no layer and both endpoints match, or
+  // (2) its explicit layer is active and both endpoints match
+  const matchingEdgeIds = useMemo(() => {
+    const ids = new Set();
+    for (const e of edges) {
+      const edgeLayer = e.data?.layer;
+      if (edgeLayer && disabledLayers.has(edgeLayer)) continue;
+      if (!matchingNodeIds.has(e.source) || !matchingNodeIds.has(e.target)) continue;
+      ids.add(e.id);
+    }
+    return ids;
+  }, [edges, matchingNodeIds, disabledLayers]);
 
   const activeNodeTypes = useMemo(() => {
     const s = new Set(availableTypes);
@@ -56,6 +86,12 @@ export function useSearch(nodes, edges) {
     return s;
   }, [availableGroups, disabledGroups]);
 
+  const activeLayers = useMemo(() => {
+    const s = new Set(availableLayers);
+    for (const l of disabledLayers) s.delete(l);
+    return s;
+  }, [availableLayers, disabledLayers]);
+
   const totalCount = useMemo(
     () => nodes.filter((n) => n.type !== 'group').length,
     [nodes]
@@ -66,9 +102,13 @@ export function useSearch(nodes, edges) {
     toggleNodeType,
     activeGroups,
     toggleGroup,
+    activeLayers,
+    toggleLayer,
     availableTypes,
     availableGroups,
+    availableLayers,
     matchingNodeIds,
+    matchingEdgeIds,
     matchCount: matchingNodeIds.size,
     totalCount,
   };

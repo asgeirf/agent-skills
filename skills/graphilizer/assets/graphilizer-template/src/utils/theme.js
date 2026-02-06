@@ -19,6 +19,7 @@ export function getNodeTypeStyle(typeName, nodeTypes = {}) {
       color: def.color || DEFAULT_PALETTE[hashString(typeName) % DEFAULT_PALETTE.length],
       icon: def.icon || null,
       borderStyle: def.borderStyle || 'solid',
+      shape: def.shape || 'default',
     };
   }
   const idx = hashString(typeName) % DEFAULT_PALETTE.length;
@@ -26,6 +27,7 @@ export function getNodeTypeStyle(typeName, nodeTypes = {}) {
     color: DEFAULT_PALETTE[idx],
     icon: null,
     borderStyle: 'solid',
+    shape: 'default',
   };
 }
 

@@ -62,13 +62,23 @@ Controls the dagre auto-layout algorithm.
 
 Each key in `nodeTypes` is a type name. The value is an object:
 
-| Property      | Type   | Default    | Description                                    |
-|---------------|--------|------------|------------------------------------------------|
-| `color`       | string | (auto)     | Hex color for the node background/border       |
-| `icon`        | string | (none)     | Emoji character or image URL displayed on the node |
-| `borderStyle` | string | `"solid"`  | Border style: `"solid"` or `"dashed"`          |
+| Property      | Type   | Default     | Description                                    |
+|---------------|--------|-------------|------------------------------------------------|
+| `color`       | string | (auto)      | Hex color for the node background/border       |
+| `icon`        | string | (none)      | Emoji character or image URL displayed on the node |
+| `borderStyle` | string | `"solid"`   | Border style: `"solid"` or `"dashed"`          |
+| `shape`       | string | `"default"` | Visual rendering shape (see below)             |
 
-Types not defined in `nodeTypes` get auto-assigned colors from a default palette.
+**Shapes** control how nodes of this type are rendered:
+
+| Shape     | Description                                             | Best for                                |
+|-----------|---------------------------------------------------------|-----------------------------------------|
+| `default` | Horizontal box with icon + label + type badge           | Services, entities, generic items       |
+| `card`    | Vertical card with large icon/image, title, description, tags | People, products, detailed entities |
+| `table`   | Header row + key-value data rows visible on the node    | Databases, configs, specs, inventories  |
+| `pill`    | Compact rounded inline label                            | Milestones, statuses, tags, phases      |
+
+Types not defined in `nodeTypes` get auto-assigned colors from a default palette. Types without a `shape` default to `"default"`.
 
 ### Edge Type Definition
 
@@ -126,21 +136,28 @@ Each node represents an entity in the graph.
 ]
 ```
 
-| Property   | Type   | Required | Description                                    |
-|------------|--------|----------|------------------------------------------------|
-| `id`       | string | yes      | Unique node identifier                         |
-| `label`    | string | yes      | Display text for the node                      |
-| `type`     | string | no       | References a key in `settings.nodeTypes`       |
-| `group`    | string | no       | References a group `id` to visually cluster the node |
-| `metadata` | object | no       | Freeform key-value pairs shown in the detail panel |
-| `position` | object | no       | Manual position `{ x, y }` — omit for auto-layout |
+| Property      | Type   | Required | Description                                    |
+|---------------|--------|----------|------------------------------------------------|
+| `id`          | string | yes      | Unique node identifier                         |
+| `label`       | string | yes      | Display text for the node                      |
+| `type`        | string | no       | References a key in `settings.nodeTypes`       |
+| `group`       | string | no       | References a group `id` to visually cluster the node |
+| `metadata`    | object | no       | Freeform key-value pairs shown in the detail panel |
+| `position`    | object | no       | Manual position `{ x, y }` — omit for auto-layout |
+| `layer`       | string | no       | Logical layer name for filtering (e.g. "Team", "Architecture") |
+| `description` | string | no       | Description text (used by `card` shape)        |
+| `tags`        | array  | no       | Array of tag strings (used by `card` shape)    |
+| `image`       | string | no       | Image URL for the card visual (used by `card` shape) |
+| `rows`        | array  | no       | Array of `{ key, value }` objects (used by `table` shape). If omitted, `metadata` is displayed as rows |
 
 ### Notes on Nodes
 
 - **Positions are optional.** When omitted, dagre auto-layout positions nodes based on the graph structure and layout settings. This is the recommended approach for most graphs.
 - **Metadata** is freeform — any key-value pairs are accepted and displayed in the detail panel when the node is clicked.
-- **Type** determines the node's visual appearance (color, icon, border). If the type is not defined in `settings.nodeTypes`, a color is auto-assigned.
+- **Type** determines the node's visual appearance (color, icon, border, shape). If the type is not defined in `settings.nodeTypes`, a color is auto-assigned with the default shape.
 - **Group** visually nests the node inside the referenced group container.
+- **Shape-specific fields** (`description`, `tags`, `image`, `rows`) are only used when the node's type has a matching shape. They are ignored for other shapes.
+- **Layer** assigns the node to a logical section. When multiple layers exist, toggle pills appear in the sidebar. Toggling a layer off dims its nodes and edges. Nodes without a layer are always visible.
 
 ---
 
@@ -156,24 +173,32 @@ Each edge represents a relationship between two nodes.
     "target": "user-service",
     "label": "REST calls",
     "type": "calls",
+    "order": 1,
+    "subtitle": "Gateway begins routing traffic to user service",
     "metadata": { "protocol": "HTTP/2", "latency": "12ms" }
   }
 ]
 ```
 
-| Property   | Type   | Required | Description                                    |
-|------------|--------|----------|------------------------------------------------|
-| `id`       | string | yes      | Unique edge identifier                         |
-| `source`   | string | yes      | Source node `id`                               |
-| `target`   | string | yes      | Target node `id`                               |
-| `label`    | string | no       | Text label displayed on the edge               |
-| `type`     | string | no       | References a key in `settings.edgeTypes`       |
-| `metadata` | object | no       | Freeform key-value pairs shown in the detail panel |
+| Property   | Type    | Required | Description                                    |
+|------------|---------|----------|------------------------------------------------|
+| `id`       | string  | yes      | Unique edge identifier                         |
+| `source`   | string  | yes      | Source node `id`                               |
+| `target`   | string  | yes      | Target node `id`                               |
+| `label`    | string  | no       | Text label displayed on the edge               |
+| `type`     | string  | no       | References a key in `settings.edgeTypes`       |
+| `order`    | integer | no       | Sequence position for timeline animation (enables the timeline player when present on any edge) |
+| `subtitle` | string  | no       | Descriptive text shown at the bottom of the canvas during this edge's timeline step |
+| `layer`    | string  | no       | Logical layer name for filtering (e.g. "Team", "Architecture") |
+| `metadata` | object  | no       | Freeform key-value pairs shown in the detail panel |
 
 ### Notes on Edges
 
 - **Metadata** is freeform — any key-value pairs are accepted and displayed in the detail panel when the edge is clicked.
 - **Type** determines the edge's visual appearance (color, line style, animation). If the type is not defined in `settings.edgeTypes`, a color is auto-assigned.
+- **Order** enables the timeline player. Edges with the same `order` value animate simultaneously. The timeline plays 3 seconds per step. Future edges appear translucent, active edges glow with an animated dot, and past edges show at full opacity.
+- **Subtitle** is shown in a teletext-style bar at the bottom of the canvas when the edge's step is active. Multiple edges with the same order display their subtitles on separate lines.
+- **Layer** assigns the edge to a logical section. Edges are dimmed when their layer is toggled off or when both endpoints are dimmed. Edges without a layer are dimmed only if both endpoints are dimmed.
 
 ---
 
