@@ -3,17 +3,16 @@
     "width": 1280,
     "height": 720,
     "background": "#1a1a2e",
-    "animationDuration": 500,
-    "fitViewOnComplete": true
+    "duration": 5000,
+    "traffic": true
   },
-  "steps": [
-    { "type": "addNode", "node": { "id": "1", "label": "Start", "position": [200, 100] }, "delay": 600 },
-    { "type": "addNode", "node": { "id": "2", "label": "Process", "position": [200, 250] }, "delay": 600 },
-    { "type": "addNode", "node": { "id": "3", "label": "End", "position": [200, 400] }, "delay": 600 },
-    { "type": "addEdge", "edge": { "id": "e1-2", "source": "1", "target": "2", "animated": true }, "delay": 500 },
-    { "type": "addEdge", "edge": { "id": "e2-3", "source": "2", "target": "3", "animated": true }, "delay": 500 },
-    { "type": "highlight", "ids": ["2"], "color": "#e94560", "delay": 800 },
-    { "type": "fitView", "padding": 0.3, "delay": 500 },
-    { "type": "wait", "delay": 1000 }
+  "nodes": [
+    { "id": "a", "label": "Start", "position": [400, 50] },
+    { "id": "b", "label": "Process", "position": [400, 200] },
+    { "id": "c", "label": "End", "position": [400, 350] }
+  ],
+  "edges": [
+    { "id": "e1", "source": "a", "target": "b" },
+    { "id": "e2", "source": "b", "target": "c" }
   ]
 }

@@ -42,3 +42,19 @@ html, body, #root {
 .react-flow__background {
   opacity: 0.4;
 }
+
+/* Traffic animation for static mode */
+@keyframes traffic-flow {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.traffic-mode .react-flow__edge.animated path {
+  stroke-dasharray: 8 4;
+  animation: traffic-flow 1.5s linear infinite;
+  filter: drop-shadow(0 0 3px #e94560);
+}

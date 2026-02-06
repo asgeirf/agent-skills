@@ -13,7 +13,7 @@ triggers:
 
 # Flow Graph Skill
 
-Generate animated graph visualizations rendered as GIF and WebM video files. You describe a process or graph in natural language, then this skill produces a step-by-step animated build-up of the diagram.
+Generate graph visualizations rendered as GIF and WebM video files with animated traffic flowing along edges. You describe a process or graph in natural language, then this skill produces a video of the diagram.
 
 ## Workflow
 
@@ -23,13 +23,35 @@ Parse the user's description to identify:
 - **Nodes** — entities, states, steps, or concepts
 - **Edges** — relationships, transitions, data flows
 - **Layout** — flowchart (top-down), pipeline (left-right), state machine (radial), etc.
-- **Emphasis** — which nodes/edges to highlight or animate specially
+- **Mode** — static with traffic (default) or step-by-step build-up (only if user explicitly asks)
 
 ### 2. Generate Graph JSON
 
-Create a `graph-data.json` file following the animation step schema. Each step adds a node, edge, highlight, or camera movement — building up the graph incrementally for visual storytelling.
+Create a `graph-data.json` file. **Default to static mode** — define all nodes and edges upfront. The engine renders the complete graph immediately with animated traffic flowing along edges.
 
-**Quick Reference** (see [references/graph-schema.md](references/graph-schema.md) for full details):
+**Static mode** (default — use this unless asked for build-up animation):
+
+```json
+{
+  "settings": {
+    "width": 1280, "height": 720,
+    "background": "#1a1a2e",
+    "duration": 5000,
+    "traffic": true
+  },
+  "nodes": [
+    { "id": "a", "label": "Start", "position": [400, 50] },
+    { "id": "b", "label": "Process", "position": [400, 200] },
+    { "id": "c", "label": "End", "position": [400, 350] }
+  ],
+  "edges": [
+    { "id": "e1", "source": "a", "target": "b" },
+    { "id": "e2", "source": "b", "target": "c" }
+  ]
+}
+```
+
+**Step mode** (advanced — only when user asks for build-up sequences):
 
 ```json
 {
@@ -50,6 +72,8 @@ Create a `graph-data.json` file following the animation step schema. Each step a
 ```
 
 **Step types:** `addNode`, `addEdge`, `highlight`, `moveNode`, `removeNode`, `removeEdge`, `updateStyle`, `fitView`, `zoom`, `pan`, `wait`
+
+See [references/graph-schema.md](references/graph-schema.md) for full details on both modes.
 
 ### 3. Write the JSON File
 
@@ -77,7 +101,7 @@ node <skill-dir>/scripts/record.mjs /tmp/my-graph.json ./output --format both
 
 This will produce `output.webm` and `output.gif` in the current directory.
 
-## Common Patterns
+## Layout Patterns
 
 **Top-down flowchart** — Increment Y by ~150 per row, center X:
 ```json
@@ -113,6 +137,14 @@ The script handles everything: copies the template to a temp directory, injects 
 
 ## Design Tips
 
+### Static mode (default)
+- Set `duration` to 4000-6000ms for a good looping clip
+- Traffic animation flows automatically on all edges — no per-edge config needed
+- Set `"traffic": false` in settings if you want a still diagram
+- Style key nodes with colored backgrounds or borders to show roles (source, sink, decision)
+- Use edge `label` to annotate relationships
+
+### Step mode (build-up animation)
 - Use `delay: 400-800` for node/edge additions (fast enough to be engaging, slow enough to follow)
 - Add a `highlight` step after key nodes appear to draw attention
 - End with `fitView` + `wait` to show the complete graph for 1-2 seconds

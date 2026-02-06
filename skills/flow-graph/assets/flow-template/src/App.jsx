@@ -12,6 +12,32 @@ import graphData from "./graph-data.json";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+function toReactFlowNode(n) {
+  const pos = Array.isArray(n.position)
+    ? { x: n.position[0], y: n.position[1] }
+    : n.position;
+  return {
+    id: n.id,
+    type: n.type || "default",
+    position: pos,
+    data: { label: n.label || n.id },
+    style: n.style || {},
+    className: n.className || "",
+  };
+}
+
+function toReactFlowEdge(e, traffic) {
+  return {
+    id: e.id,
+    source: e.source,
+    target: e.target,
+    type: e.type || "default",
+    animated: traffic ? true : (e.animated ?? false),
+    label: e.label,
+    style: e.style || {},
+  };
+}
+
 function AnimatedFlow() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -19,6 +45,30 @@ function AnimatedFlow() {
   const settings = graphData.settings || {};
   const animDuration = settings.animationDuration || 500;
   const running = useRef(false);
+
+  const isStaticMode = Array.isArray(graphData.nodes);
+  const traffic = isStaticMode && (settings.traffic !== false);
+
+  const renderStaticGraph = useCallback(async () => {
+    if (running.current) return;
+    running.current = true;
+    window.__animationDone = false;
+
+    const duration = settings.duration || 5000;
+
+    setNodes(graphData.nodes.map((n) => toReactFlowNode(n)));
+    setEdges(graphData.edges.map((e) => toReactFlowEdge(e, traffic)));
+
+    // Let React Flow settle and layout, then fit view
+    await sleep(200);
+    fitView({ padding: 0.2, duration: 400 });
+    await sleep(400);
+
+    // Wait for the configured duration (traffic animation loops during this)
+    await sleep(duration);
+
+    window.__animationDone = true;
+  }, [setNodes, setEdges, fitView, settings, traffic]);
 
   const runSteps = useCallback(async () => {
     if (running.current) return;
@@ -210,13 +260,19 @@ function AnimatedFlow() {
 
   useEffect(() => {
     window.__animationDone = false;
-    runSteps();
-  }, [runSteps]);
+    if (isStaticMode) {
+      renderStaticGraph();
+    } else {
+      runSteps();
+    }
+  }, [isStaticMode, renderStaticGraph, runSteps]);
 
   const bg = settings.background || "#1a1a2e";
+  const containerClass = isStaticMode && traffic ? "traffic-mode" : "";
 
   return (
     <div
+      className={containerClass}
       style={{
         width: settings.width || 1280,
         height: settings.height || 720,

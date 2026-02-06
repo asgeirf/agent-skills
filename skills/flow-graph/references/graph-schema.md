@@ -1,8 +1,141 @@
 # Graph Schema Reference
 
-Complete reference for the `graph-data.json` format used by the flow-graph animation engine.
+Complete reference for the `graph-data.json` format used by the flow-graph engine.
 
-## Top-Level Structure
+## Modes
+
+The engine supports two modes, auto-detected from the JSON structure:
+
+- **Static mode** (default) — Define `nodes` and `edges` arrays at the top level. The complete graph renders immediately with animated traffic flowing along edges.
+- **Step mode** (advanced) — Define a `steps` array with incremental animation instructions. Used when you need a build-up sequence.
+
+Detection: if a `nodes` array exists at the top level, static mode is used. If only `steps` exists, step mode is used.
+
+---
+
+## Static Mode (Default)
+
+### Top-Level Structure
+
+```json
+{
+  "settings": { ... },
+  "nodes": [ ... ],
+  "edges": [ ... ]
+}
+```
+
+### Settings Object (Static Mode)
+
+| Property     | Type    | Default     | Description                                      |
+|--------------|---------|-------------|--------------------------------------------------|
+| `width`      | number  | `1280`      | Viewport width in pixels                         |
+| `height`     | number  | `720`       | Viewport height in pixels                        |
+| `background` | string  | `"#1a1a2e"` | Background color (hex)                           |
+| `duration`   | number  | `5000`      | How long to record the looping animation (ms)    |
+| `traffic`    | boolean | `true`      | Animate flowing dashes along edges               |
+
+### Node Object
+
+```json
+{ "id": "a", "label": "Start", "position": [200, 100] }
+```
+
+| Property    | Type                  | Required | Description                                          |
+|-------------|-----------------------|----------|------------------------------------------------------|
+| `id`        | string                | yes      | Unique node identifier                               |
+| `label`     | string                | no       | Display text (defaults to `id`)                      |
+| `position`  | `[x, y]` or `{x, y}` | yes      | Position in the flow canvas                          |
+| `type`      | string                | no       | React Flow node type (`"default"`, `"input"`, `"output"`) |
+| `style`     | object                | no       | Inline CSS styles (camelCase)                        |
+| `className` | string                | no       | Additional CSS class names                           |
+
+### Edge Object
+
+```json
+{ "id": "e1", "source": "a", "target": "b" }
+```
+
+| Property   | Type    | Required | Description                                              |
+|------------|---------|----------|----------------------------------------------------------|
+| `id`       | string  | yes      | Unique edge identifier                                   |
+| `source`   | string  | yes      | Source node ID                                           |
+| `target`   | string  | yes      | Target node ID                                           |
+| `type`     | string  | no       | Edge type (`"default"`, `"straight"`, `"step"`, `"smoothstep"`) |
+| `animated` | boolean | no       | Override per-edge animation (ignored when `traffic: true`) |
+| `label`    | string  | no       | Text label on the edge                                   |
+| `style`    | object  | no       | Inline CSS styles                                        |
+
+### Static Mode Examples
+
+#### Simple Flowchart
+
+```json
+{
+  "settings": { "width": 1280, "height": 720, "background": "#1a1a2e", "duration": 5000 },
+  "nodes": [
+    { "id": "start", "label": "Start", "position": [400, 50] },
+    { "id": "process", "label": "Process Data", "position": [400, 200] },
+    { "id": "decide", "label": "Valid?", "position": [400, 350], "style": { "borderRadius": "50%", "width": "80px", "height": "80px", "display": "flex", "alignItems": "center", "justifyContent": "center" } },
+    { "id": "yes", "label": "Save", "position": [250, 500] },
+    { "id": "no", "label": "Retry", "position": [550, 500] }
+  ],
+  "edges": [
+    { "id": "e-s-p", "source": "start", "target": "process" },
+    { "id": "e-p-d", "source": "process", "target": "decide" },
+    { "id": "e-d-y", "source": "decide", "target": "yes", "label": "Yes" },
+    { "id": "e-d-n", "source": "decide", "target": "no", "label": "No" }
+  ]
+}
+```
+
+#### Left-to-Right Pipeline
+
+```json
+{
+  "settings": { "width": 1280, "height": 400, "background": "#0d1117" },
+  "nodes": [
+    { "id": "src", "label": "Source", "position": [50, 150], "style": { "background": "#238636" } },
+    { "id": "t1", "label": "Transform", "position": [250, 150] },
+    { "id": "t2", "label": "Enrich", "position": [450, 150] },
+    { "id": "sink", "label": "Sink", "position": [650, 150], "style": { "background": "#e94560" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "src", "target": "t1" },
+    { "id": "e2", "source": "t1", "target": "t2" },
+    { "id": "e3", "source": "t2", "target": "sink" }
+  ]
+}
+```
+
+#### State Machine
+
+```json
+{
+  "settings": { "width": 1280, "height": 720, "background": "#1a1a2e" },
+  "nodes": [
+    { "id": "idle", "label": "Idle", "position": [100, 300], "style": { "border": "2px solid #53d769" } },
+    { "id": "loading", "label": "Loading", "position": [400, 150] },
+    { "id": "success", "label": "Success", "position": [700, 150], "style": { "background": "#238636" } },
+    { "id": "error", "label": "Error", "position": [700, 450], "style": { "background": "#e94560" } }
+  ],
+  "edges": [
+    { "id": "e-i-l", "source": "idle", "target": "loading", "label": "fetch()" },
+    { "id": "e-l-s", "source": "loading", "target": "success", "label": "200 OK" },
+    { "id": "e-l-e", "source": "loading", "target": "error", "label": "Error" },
+    { "id": "e-s-i", "source": "success", "target": "idle", "label": "reset" },
+    { "id": "e-e-i", "source": "error", "target": "idle", "label": "retry" }
+  ]
+}
+```
+
+---
+
+## Step Mode (Advanced)
+
+Use step mode when you need an incremental build-up animation (nodes/edges appearing one by one).
+
+### Top-Level Structure
 
 ```json
 {
@@ -11,7 +144,7 @@ Complete reference for the `graph-data.json` format used by the flow-graph anima
 }
 ```
 
-## Settings Object
+### Settings Object (Step Mode)
 
 | Property            | Type    | Default     | Description                              |
 |---------------------|---------|-------------|------------------------------------------|
@@ -21,11 +154,11 @@ Complete reference for the `graph-data.json` format used by the flow-graph anima
 | `animationDuration` | number  | `500`       | Default transition duration in ms        |
 | `fitViewOnComplete` | boolean | `true`      | Auto fit-view after all steps complete   |
 
-## Step Types
+### Step Types
 
 Every step has a `type` field and an optional `delay` (ms to wait after executing this step, default `500`).
 
-### `addNode`
+#### `addNode`
 
 Add a node to the graph with a fade-in animation.
 
@@ -55,7 +188,7 @@ Add a node to the graph with a fade-in animation.
 | `style`     | object            | no       | Inline CSS styles (camelCase)                        |
 | `className` | string            | no       | Additional CSS class names                           |
 
-### `addEdge`
+#### `addEdge`
 
 Add an edge (connection) between two nodes with a fade-in animation.
 
@@ -87,7 +220,7 @@ Add an edge (connection) between two nodes with a fade-in animation.
 | `label`    | string  | no       | Text label on the edge                                   |
 | `style`    | object  | no       | Inline CSS styles                                        |
 
-### `highlight`
+#### `highlight`
 
 Highlight one or more nodes with a colored glow.
 
@@ -105,7 +238,7 @@ Highlight one or more nodes with a colored glow.
 | `ids`    | string[] | yes      | Node IDs to highlight           |
 | `color`  | string   | no       | Highlight color (default `"#ff6b6b"`) |
 
-### `moveNode`
+#### `moveNode`
 
 Animate a node to a new position.
 
@@ -123,7 +256,7 @@ Animate a node to a new position.
 | `id`       | string            | yes      | Node ID to move       |
 | `position` | `[x, y]` or `{x, y}` | yes  | Target position       |
 
-### `removeNode`
+#### `removeNode`
 
 Fade out and remove a node (and its connected edges).
 
@@ -135,7 +268,7 @@ Fade out and remove a node (and its connected edges).
 }
 ```
 
-### `removeEdge`
+#### `removeEdge`
 
 Fade out and remove an edge.
 
@@ -147,7 +280,7 @@ Fade out and remove an edge.
 }
 ```
 
-### `updateStyle`
+#### `updateStyle`
 
 Update inline styles on one or more nodes.
 
@@ -166,7 +299,7 @@ Update inline styles on one or more nodes.
 
 You can also use `"id"` (singular) instead of `"ids"` for a single node.
 
-### `fitView`
+#### `fitView`
 
 Fit all nodes into the viewport.
 
@@ -182,7 +315,7 @@ Fit all nodes into the viewport.
 |-----------|--------|---------|---------------------------------|
 | `padding` | number | `0.2`   | Padding around the fitted view  |
 
-### `zoom`
+#### `zoom`
 
 Zoom to a specific level.
 
@@ -198,7 +331,7 @@ Zoom to a specific level.
 |----------|--------|---------|-----------------------------|
 | `level`  | number | `1`     | Zoom level (1 = 100%)       |
 
-### `pan`
+#### `pan`
 
 Pan the viewport to center on a position.
 
@@ -216,7 +349,7 @@ Pan the viewport to center on a position.
 | `position` | `[x, y]` or `{x, y}` | yes  | Position to center on               |
 | `zoom`     | number            | no       | Optional zoom level for the pan     |
 
-### `wait`
+#### `wait`
 
 Pause the animation for the specified delay without any visual change.
 
@@ -226,6 +359,8 @@ Pause the animation for the specified delay without any visual change.
   "delay": 2000
 }
 ```
+
+---
 
 ## Style Reference
 
@@ -259,70 +394,3 @@ Common style properties for nodes:
 | Warning    | `#ffd93d` | Yellow             |
 | Info       | `#6c9bcf` | Light blue         |
 | Text       | `#e0e0e0` | Light gray         |
-
-## Complete Examples
-
-### Simple Flowchart
-
-```json
-{
-  "settings": { "width": 1280, "height": 720, "background": "#1a1a2e" },
-  "steps": [
-    { "type": "addNode", "node": { "id": "start", "label": "Start", "position": [400, 50] }, "delay": 600 },
-    { "type": "addNode", "node": { "id": "process", "label": "Process Data", "position": [400, 200] }, "delay": 600 },
-    { "type": "addNode", "node": { "id": "decide", "label": "Valid?", "position": [400, 350], "style": { "borderRadius": "50%", "width": "80px", "height": "80px", "display": "flex", "alignItems": "center", "justifyContent": "center" } }, "delay": 600 },
-    { "type": "addNode", "node": { "id": "yes", "label": "Save", "position": [250, 500] }, "delay": 400 },
-    { "type": "addNode", "node": { "id": "no", "label": "Retry", "position": [550, 500] }, "delay": 400 },
-    { "type": "addEdge", "edge": { "id": "e-s-p", "source": "start", "target": "process", "animated": true }, "delay": 400 },
-    { "type": "addEdge", "edge": { "id": "e-p-d", "source": "process", "target": "decide", "animated": true }, "delay": 400 },
-    { "type": "addEdge", "edge": { "id": "e-d-y", "source": "decide", "target": "yes", "label": "Yes" }, "delay": 400 },
-    { "type": "addEdge", "edge": { "id": "e-d-n", "source": "decide", "target": "no", "label": "No" }, "delay": 400 },
-    { "type": "highlight", "ids": ["decide"], "color": "#ffd93d", "delay": 1000 },
-    { "type": "wait", "delay": 1500 }
-  ]
-}
-```
-
-### Pipeline / Data Flow
-
-```json
-{
-  "settings": { "width": 1280, "height": 400, "background": "#0d1117" },
-  "steps": [
-    { "type": "addNode", "node": { "id": "src", "label": "Source", "position": [50, 150], "style": { "background": "#238636" } }, "delay": 500 },
-    { "type": "addNode", "node": { "id": "t1", "label": "Transform", "position": [250, 150] }, "delay": 500 },
-    { "type": "addNode", "node": { "id": "t2", "label": "Enrich", "position": [450, 150] }, "delay": 500 },
-    { "type": "addNode", "node": { "id": "sink", "label": "Sink", "position": [650, 150], "style": { "background": "#e94560" } }, "delay": 500 },
-    { "type": "addEdge", "edge": { "id": "e1", "source": "src", "target": "t1", "animated": true }, "delay": 300 },
-    { "type": "addEdge", "edge": { "id": "e2", "source": "t1", "target": "t2", "animated": true }, "delay": 300 },
-    { "type": "addEdge", "edge": { "id": "e3", "source": "t2", "target": "sink", "animated": true }, "delay": 300 },
-    { "type": "highlight", "ids": ["src"], "color": "#238636", "delay": 600 },
-    { "type": "highlight", "ids": ["t1"], "color": "#6c9bcf", "delay": 600 },
-    { "type": "highlight", "ids": ["t2"], "color": "#6c9bcf", "delay": 600 },
-    { "type": "highlight", "ids": ["sink"], "color": "#e94560", "delay": 600 },
-    { "type": "wait", "delay": 2000 }
-  ]
-}
-```
-
-### State Machine
-
-```json
-{
-  "settings": { "width": 1280, "height": 720, "background": "#1a1a2e" },
-  "steps": [
-    { "type": "addNode", "node": { "id": "idle", "label": "Idle", "position": [100, 300], "style": { "border": "2px solid #53d769" } }, "delay": 500 },
-    { "type": "addNode", "node": { "id": "loading", "label": "Loading", "position": [400, 150] }, "delay": 500 },
-    { "type": "addNode", "node": { "id": "success", "label": "Success", "position": [700, 150], "style": { "background": "#238636" } }, "delay": 500 },
-    { "type": "addNode", "node": { "id": "error", "label": "Error", "position": [700, 450], "style": { "background": "#e94560" } }, "delay": 500 },
-    { "type": "addEdge", "edge": { "id": "e-i-l", "source": "idle", "target": "loading", "label": "fetch()", "animated": true }, "delay": 400 },
-    { "type": "addEdge", "edge": { "id": "e-l-s", "source": "loading", "target": "success", "label": "200 OK" }, "delay": 400 },
-    { "type": "addEdge", "edge": { "id": "e-l-e", "source": "loading", "target": "error", "label": "Error" }, "delay": 400 },
-    { "type": "addEdge", "edge": { "id": "e-s-i", "source": "success", "target": "idle", "label": "reset" }, "delay": 400 },
-    { "type": "addEdge", "edge": { "id": "e-e-i", "source": "error", "target": "idle", "label": "retry" }, "delay": 400 },
-    { "type": "highlight", "ids": ["idle"], "color": "#53d769", "delay": 800 },
-    { "type": "highlight", "ids": ["loading"], "color": "#6c9bcf", "delay": 800 },
-    { "type": "wait", "delay": 2000 }
-  ]
-}
-```
