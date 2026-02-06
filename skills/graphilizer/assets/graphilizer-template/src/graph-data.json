@@ -1,0 +1,40 @@
+{
+  "settings": {
+    "title": "Microservices Architecture",
+    "description": "Example service dependency graph",
+    "layout": { "direction": "TB", "nodeSpacing": 100, "rankSpacing": 140 },
+    "nodeTypes": {
+      "service": { "color": "#6c9bcf", "icon": "\u2699\ufe0f" },
+      "database": { "color": "#e94560", "icon": "\ud83d\uddc4\ufe0f" },
+      "queue": { "color": "#ffd93d", "icon": "\ud83d\udce8" },
+      "gateway": { "color": "#53d769", "icon": "\ud83d\udee1\ufe0f" }
+    },
+    "edgeTypes": {
+      "sync": { "color": "#6c9bcf", "style": "solid" },
+      "async": { "color": "#ffd93d", "style": "dashed", "animated": true },
+      "reads": { "color": "#e94560", "style": "dotted" }
+    }
+  },
+  "groups": [
+    { "id": "g-backend", "label": "Backend Services", "style": { "backgroundColor": "rgba(108,155,207,0.08)" } },
+    { "id": "g-data", "label": "Data Layer", "style": { "backgroundColor": "rgba(233,69,96,0.08)" } }
+  ],
+  "nodes": [
+    { "id": "gateway", "label": "API Gateway", "type": "gateway", "metadata": { "port": "8080", "framework": "Express" } },
+    { "id": "users", "label": "User Service", "type": "service", "group": "g-backend", "metadata": { "language": "TypeScript", "team": "Platform" } },
+    { "id": "orders", "label": "Order Service", "type": "service", "group": "g-backend", "metadata": { "language": "Go", "team": "Commerce" } },
+    { "id": "notifications", "label": "Notification Service", "type": "service", "group": "g-backend", "metadata": { "language": "Python", "team": "Platform" } },
+    { "id": "pg", "label": "PostgreSQL", "type": "database", "group": "g-data", "metadata": { "version": "16", "storage": "500GB" } },
+    { "id": "redis", "label": "Redis Cache", "type": "database", "group": "g-data", "metadata": { "version": "7.2", "mode": "cluster" } },
+    { "id": "rabbitmq", "label": "RabbitMQ", "type": "queue", "group": "g-data", "metadata": { "version": "3.12" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "gateway", "target": "users", "label": "routes", "type": "sync" },
+    { "id": "e2", "source": "gateway", "target": "orders", "label": "routes", "type": "sync" },
+    { "id": "e3", "source": "users", "target": "pg", "label": "queries", "type": "reads" },
+    { "id": "e4", "source": "orders", "target": "pg", "label": "queries", "type": "reads" },
+    { "id": "e5", "source": "users", "target": "redis", "label": "cache", "type": "reads" },
+    { "id": "e6", "source": "orders", "target": "rabbitmq", "label": "publishes", "type": "async" },
+    { "id": "e7", "source": "rabbitmq", "target": "notifications", "label": "consumes", "type": "async" }
+  ]
+}
