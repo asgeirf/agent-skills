@@ -55,12 +55,24 @@ Create a `graph-data.json` file following the animation step schema. Each step a
 
 Write the graph JSON to a temporary file, e.g. `/tmp/my-graph.json`.
 
-### 4. Record the Animation
+### 4. Setup (first run only)
+
+Install the skill's dependencies if not yet done:
+
+```bash
+cd <skill-dir> && npm install --prefer-offline --no-audit --no-fund
+cd <skill-dir>/assets/flow-template && npm install --prefer-offline --no-audit --no-fund
+npx playwright install chromium
+```
+
+Where `<skill-dir>` is the directory containing this SKILL.md file.
+
+### 5. Record the Animation
 
 Run the recording script:
 
 ```bash
-node <skill-path>/scripts/record.mjs /tmp/my-graph.json ./output --format both
+node <skill-dir>/scripts/record.mjs /tmp/my-graph.json ./output --format both
 ```
 
 This will produce `output.webm` and `output.gif` in the current directory.

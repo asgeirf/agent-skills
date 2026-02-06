@@ -1,11 +1,5 @@
 {
-  "name": "flow-graph-skill",
+  "name": "agent-skills",
   "private": true,
-  "type": "module",
-  "scripts": {
-    "record": "node scripts/record.mjs"
-  },
-  "dependencies": {
-    "playwright": "^1.52.0"
-  }
+  "description": "Collection of agent skills for Claude Code and other AI coding agents"
 }
