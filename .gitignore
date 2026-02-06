@@ -1,0 +1,4 @@
+node_modules/
+*.webm
+*.gif
+package-lock.json
